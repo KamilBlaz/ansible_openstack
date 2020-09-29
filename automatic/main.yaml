@@ -1,0 +1,129 @@
+- hosts: localhost
+
+  tasks:
+          - name: Include vars
+            include_vars:
+                    file: main.yaml
+
+          - name: Install pip
+            apt:
+                    name: python3-pip
+                    state: latest
+          - name: Install openstacksdk
+            pip:
+                    name: openstacksdk
+
+          - name: Create image cirros
+            os_image:
+                    cloud: openstack
+                    name: cirros_1
+                    container_format: bare
+                    disk_format: qcow2
+                    state: present
+                    filename: "{{ img_name }}"
+                    kernel: cirros-vmlinuz
+                    ramdisk: cirros-initrd
+                    properties:
+                      cpu_arch: x86_64
+                      distro: ubuntu
+
+          - name: Add keypair
+            os_keypair:
+                     cloud: openstack
+                     state: present
+                     name: "{{ key_name }}"
+
+
+          - name: Create public network
+            os_network:
+                     cloud: openstack
+                     state: present
+                     provider_network_type: flat
+                     provider_physical_network: "{{ pub_net }}"
+                     external: yes
+                     name: public
+
+          - name: Create private network
+            os_network:
+                     cloud: openstack
+                     state: present
+                     name: "{{ item.net }}"
+            with_items: "{{ networks }}"
+
+
+
+          - name: Add subnets
+            os_subnet:
+              state: present
+              network_name: "{{ item.net }}"
+              name: "{{ item.name }}"
+              cidr: "{{ item.subnet }}"
+            with_items: "{{networks}}"
+
+          - name: Create ports
+            os_port:
+              cloud: openstack
+              state: present
+              network: "{{ item.network }}"
+              name: "{{ item.name_port }}"
+              fixed_ips:
+                - ip_address: "{{ item.ip }}"
+            with_items:
+                - "{{ network_port }}"
+
+
+
+          - name: Add  private routers
+            os_router:
+                    cloud: openstack
+                    state: present
+                    name: "{{ item.router }}"
+                    network: "{{  item.network_ex }}"
+                    interfaces:
+                      - "{{ item.subnet }}"
+            with_items:
+                  - "{{ router_ex }}"
+
+          - name: Add  private routers
+            os_router:
+                     cloud: openstack
+                     state: present
+                     name: "{{ item.router }}"
+                     interfaces:
+                       - net: "{{ item.net_name }}"
+                         subnet: "{{ item.subnet_1 }}"
+                         portip: "{{ item.portip }}"
+
+                       - "{{ item.subnet_2 }}"
+            with_items:
+                    - "{{ routers }}"
+
+
+
+          - name: "Create 'tiny' flavor ."
+            os_nova_flavor:
+                    cloud: openstack
+                    state: present
+                    name: tiny
+                    ram: 512
+                    vcpus: 1
+                    disk: 1
+                    ephemeral: 1
+
+
+
+          - name: Create  instances
+            os_server:
+                    cloud: openstack
+                    name: "{{ item.instances }}"
+                    state: present
+                    image: cirros_1
+                    availability_zone: nova
+                    key_name: "{{ key_name }}"
+                    nics:
+                      - net-name: "{{ item.network }}"
+                    auto_ip: no
+                    flavor: tiny
+            with_items:
+                    - "{{ instances }}"
+

@@ -1,0 +1,25 @@
+
+key_name: blazzkam_key
+img_name: cirros-0.3.0-x86_64-disk.img
+pub_net: physnet1
+
+networks:
+  - { net: 'net_1', subnet: '10.0.1.0/24', name: 'priv_1' }
+  - { net: 'net_2', subnet: '10.0.2.0/24', name: 'priv_2' }
+  - { net: 'net_3', subnet: '10.0.3.0/24', name: 'priv_3' }
+  - { net: 'public', subnet: '192.168.9.0/24', name: 'public_net' }
+
+network_port:
+  - { network: 'net_2', name_port: 'port_2', ip: '10.0.2.3' }
+  - { network: 'net_3', name_port: 'port_3', ip: '10.0.3.3' }
+
+router_ex:
+  - { router: 'router_1', network_ex: 'public' , net: 'net_1', subnet: 'priv_1', portip: '10.0.1.5' }
+
+routers:
+  - { router: 'router_2', subnet_1: 'priv_1', subnet_2: 'priv_2' , portip: '10.0.1.10', net_name: 'net_1'  }
+  - { router: 'router_3', subnet_1: 'priv_2', subnet_2: 'priv_3' , portip: '10.0.2.10', net_name: 'net_2' }
+instances:
+  - { instances: 'vm_1', network: 'net_1' }
+  - { instances: 'vm_2', network: 'net_2' }
+  - { instances: 'vm_3', network: 'net_3' }
